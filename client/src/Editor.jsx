@@ -58,8 +58,22 @@ export default function Editor({
   const ydoc = useMemo(() => new Y.Doc(), []);
 
   // WebSocket Collaboration Provider
-  const collabUrl =
-    import.meta.env.VITE_COLLAB_URL || "ws://localhost:1234";
+  const collabUrl = useMemo(() => {
+    if (import.meta.env.VITE_COLLAB_URL) {
+      return import.meta.env.VITE_COLLAB_URL;
+    }
+    const apiUrl = import.meta.env.VITE_API_URL;
+    if (apiUrl) {
+      try {
+        const parsed = new URL(apiUrl);
+        const protocol = parsed.protocol === "https:" ? "wss:" : "ws:";
+        return `${protocol}//${parsed.host}`;
+      } catch {
+        // Fall back
+      }
+    }
+    return "ws://localhost:1234";
+  }, []);
 
   const provider = useMemo(
     () =>

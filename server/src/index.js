@@ -4,6 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
+import WebSocket from "ws";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import documentRoutes from "./routes/documents.js";
@@ -13,18 +14,34 @@ const app = express();
 app.disable("x-powered-by");
 app.use(helmet());
 
-const allowedOrigins = [
+const defaultOrigins = [
   "http://localhost:5173",
-  "http://localhost:5174"
+  "http://localhost:5174",
+  "http://localhost:3000"
 ];
-if (process.env.CLIENT_URL && !allowedOrigins.includes(process.env.CLIENT_URL)) {
-  allowedOrigins.push(process.env.CLIENT_URL);
-}
+
+const envOrigins = (process.env.CLIENT_URL || "")
+  .split(",")
+  .map((url) => url.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
+
+const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    const normalized = origin.replace(/\/+$/, "");
+    if (
+      allowedOrigins.includes(normalized) ||
+      /\.vercel\.app$/.test(new URL(origin).hostname)
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
 }));
 
 app.use(express.json({ limit: "1mb" }));
@@ -72,13 +89,23 @@ export async function startServer() {
       console.log(`API running at http://localhost:${port}`);
     });
 
-    collaborationServer.listen().then(() => {
-      console.log(
-        `Collaboration server running at ws://localhost:${Number(process.env.COLLAB_PORT) || 1234}`
-      );
-    }).catch((err) => {
-      console.error("Collaboration server startup error:", err.message);
+    // Handle WebSocket connections on the primary HTTP port (ideal for Render single-port deployment)
+    const wss = new WebSocket.Server({ noServer: true });
+    server.on("upgrade", (request, socket, head) => {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        collaborationServer.handleConnection(ws, request);
+      });
     });
+
+    // Also support dedicated COLLAB_PORT if configured and distinct from main port (useful for local dev)
+    const collabPort = Number(process.env.COLLAB_PORT) || 1234;
+    if (collabPort !== port) {
+      collaborationServer.listen().then(() => {
+        console.log(`Dedicated collaboration server listening on port ${collabPort}`);
+      }).catch((err) => {
+        console.warn("Dedicated collaboration server port skipped or already bound:", err.message);
+      });
+    }
 
     return server;
   } catch (error) {
