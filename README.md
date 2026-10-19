@@ -33,6 +33,19 @@ Backend health check: http://localhost:5000/api/health
 
 If the Vite port is different, update `CLIENT_URL` in `server/.env` to match the actual frontend origin.
 
+## Quick start with Docker Compose
+
+Run the entire multi-tier stack (MongoDB + Backend API & WebSocket Collaboration Server + React Nginx Client) with a single command:
+
+```powershell
+docker compose up --build
+```
+
+- **Frontend App**: http://localhost:5173
+- **Express API**: http://localhost:5000/api/health
+- **WebSocket CRDT Server**: ws://localhost:1234
+- **MongoDB**: mongodb://localhost:27017
+
 ## Environment variables
 
 | Variable | Where | Description |

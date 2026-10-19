@@ -23,6 +23,7 @@ function roleFor(doc, userId) {
 
 export const collaborationServer = Server.configure({
   port: Number(process.env.COLLAB_PORT) || 1234,
+  address: process.env.COLLAB_HOST || "::",
 
   async onAuthenticate({ documentName, token, connection }) {
     if (!mongoose.isValidObjectId(documentName)) {
@@ -86,7 +87,7 @@ export const collaborationServer = Server.configure({
 
     await Document.updateOne(
       { _id: documentName },
-      { $set: { collabState: state } }
+      { $set: { collabState: state, updatedAt: new Date() } }
     );
   },
 });

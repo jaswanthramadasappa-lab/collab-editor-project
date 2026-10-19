@@ -7,10 +7,10 @@
 - [x] Share documents with registered users
 - [x] TipTap editor with debounced content save
 - [ ] Store TipTap JSON rather than plain text
-- [ ] Yjs WebSocket server and durable persistence
-- [ ] Live cursor and online presence
+- [x] Yjs WebSocket server and durable persistence
+- [x] Live cursor and online presence
 - [ ] Version history and restore
 - [ ] Comments
 - [ ] Automated API and browser tests
-- [ ] Docker Compose and GitHub Actions
+- [x] Docker Compose and GitHub Actions
 - [ ] Deployment and performance tests

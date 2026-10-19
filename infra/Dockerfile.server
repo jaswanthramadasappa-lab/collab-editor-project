@@ -6,5 +6,7 @@ COPY client/package.json ./client/package.json
 RUN npm install --omit=dev
 COPY server ./server
 ENV NODE_ENV=production
-EXPOSE 5000
+ENV COLLAB_PORT=1234
+ENV COLLAB_HOST=0.0.0.0
+EXPOSE 5000 1234
 CMD ["npm", "run", "start", "-w", "server"]

@@ -1,0 +1,51 @@
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  server:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.server
+    restart: unless-stopped
+    environment:
+      PORT: 5000
+      CLIENT_URL: http://localhost:5173
+      MONGODB_URI: mongodb://mongodb:27017/collab_editor
+      JWT_SECRET: ${JWT_SECRET:-collabspace_docker_compose_super_secret_key_at_least_32_characters}
+      JWT_EXPIRES_IN: 1d
+      COLLAB_PORT: 1234
+      COLLAB_HOST: 0.0.0.0
+      NODE_ENV: production
+    ports:
+      - "5000:5000"
+      - "1234:1234"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  client:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.client
+      args:
+        VITE_API_URL: http://localhost:5000
+        VITE_COLLAB_URL: ws://localhost:1234
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - server
+
+volumes:
+  mongo_data:

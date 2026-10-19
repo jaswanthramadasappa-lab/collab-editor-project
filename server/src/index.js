@@ -43,6 +43,16 @@ app.get("/api/health", (_req, res) => {
     database: connected ? "connected" : "disconnected"
   });
 });
+app.get("/", (_req, res) => {
+  res.json({
+    name: "CollabSpace API Server",
+    status: "online",
+    frontendUrl: process.env.CLIENT_URL || "http://localhost:5173",
+    healthCheck: "/api/health",
+    message: "CollabSpace backend API is running. Open http://localhost:5173 in your browser to access the collaborative document editor."
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/documents", documentRoutes);
 app.use((_req, res) => res.status(404).json({ message: "Route not found" }));
